@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import styled from "styled-components";
 import { Stylable } from "../../types/component.types";
 import { ExternalLink, Text, Span } from "../atoms/typography.component";
@@ -7,7 +7,7 @@ import { NewsItem as NewsItemShape } from "../../types/hn.types";
 
 type Props = Stylable & NewsItemShape;
 
-export const RawNewsItem = ({ title, url, by, time, className }: Props) => (
+export const RawNewsItem = memo(({ title, url, by, time, className }: Props) => (
   <li className={className}>
     <Text>
       <ExternalLink href={url}>{title}</ExternalLink>
@@ -18,6 +18,6 @@ export const RawNewsItem = ({ title, url, by, time, className }: Props) => (
       <Span color={grey}>{time}</Span>
     </div>
   </li>
-);
+));
 
 export const NewsItem = styled(RawNewsItem)``;

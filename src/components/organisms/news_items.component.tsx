@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect } from "react";
+import React, { useReducer, useEffect, useRef, Dispatch, Ref, useCallback } from "react";
 import styled from "styled-components";
 import { Stylable, ReducerAction } from "../../types/component.types";
 import { NewsItems as NewsItemsShape, NewsItem as NewsItemShape } from "../../types/hn.types";
@@ -15,9 +15,8 @@ enum ActionType {
   ItemsLoading = "ITEMS_LOADING",
   ItemsLoaded = "ITEMS_LOADED",
   ItemsError = "ITEMS_ERROR",
-  NextPageLoading = "NEXT_PAGE_LOADING",
-  NextPageLoaded = "NEXT_PAGE_LOADED",
-  NextPageError = "NEXT_PAGE_ERROR"
+  ItemLoaded = "ITEM_LOADED",
+  ChangePage = "CHANGE_PAGE"
 }
 
 type State = {
@@ -53,6 +52,8 @@ const newsItemsReducer = (state: State, action: Action) => {
     case ActionType.ItemsLoading:
       return { ...state, items: { ...state.items, loading: true } };
     case ActionType.ItemsLoaded:
+      return { ...state, items: { ...state.items, loading: false } };
+    case ActionType.ItemLoaded:
       return {
         ...state,
         items: {
@@ -65,48 +66,105 @@ const newsItemsReducer = (state: State, action: Action) => {
       };
     case ActionType.ItemsError:
       return { ...state, items: { ...state.items, error: action.payload as string } };
+    case ActionType.ChangePage:
+      return { ...state, page: state.page + 1 };
     default:
       return state;
   }
+};
+
+export const fetchItemIds = async (dispatch: Dispatch<ReducerAction>) => {
+  try {
+    const result = await fetch("https://hacker-news.firebaseio.com/v0/topstories.json");
+    const json = await result.json();
+
+    dispatch({ type: ActionType.ItemListLoaded, payload: json });
+  } catch (err) {
+    dispatch({ type: ActionType.ItemListError, payload: err.message });
+  }
+};
+
+export const fetchItem = async (id: number, dispatch: Dispatch<ReducerAction>) => {
+  try {
+    const fetchResult = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+    const itemData = await fetchResult.json();
+
+    // React doesn't seem good at batching dispatch calls, so queue this update for the next available tick
+    // This is a hack for `requestIdleCallback`, which isn't supported very well
+    setTimeout(() => dispatch({ type: ActionType.ItemLoaded, payload: itemData }), 0);
+  } catch (err) {
+    dispatch({ type: ActionType.ItemsError, payload: err.message });
+  }
+};
+
+export const fetchNewItems = async (state: State, dispatch: Dispatch<ReducerAction>) => {
+  const itemsToLoad = state.itemList.data!.slice(
+    (state.page - 1) * itemsPerPage,
+    state.page * itemsPerPage
+  );
+
+  itemsToLoad.forEach(async item => {
+    // if (!!state.items.data && Object.keys(state.items.data).length % itemsPerPage === 0) {
+    //   console.log("all items loaded");
+
+    //   dispatch({ type: ActionType.ItemsLoaded });
+    // }
+    fetchItem(item, dispatch);
+  });
+};
+
+export const createObserver = (cb: () => void) => {
+  return new IntersectionObserver(
+    entries => {
+      const loadMoreEntry = entries[0];
+
+      if (!loadMoreEntry.isIntersecting) return;
+
+      cb();
+    },
+    {
+      root: null,
+      threshold: [1.0],
+      rootMargin: "0px"
+    }
+  );
 };
 
 export const RawNewsItems = ({ className }: Props) => {
   // Use a reducer here to guaruntee safe writes to state. `useState` overwrites the entire state,
   // and if network calls finish before the state has been updated, some items may get overwritten.
   const [state, dispatch] = useReducer(newsItemsReducer, initialState);
+  const loadMoreRef = useRef(null);
+  const moreToLoad =
+    !!state.itemList.data &&
+    Object.keys(state.items.data || {}).length !== state.itemList.data.length &&
+    Object.keys(state.items.data || {}).length > 0;
+
+  const updatePage = useCallback(() => {
+    dispatch({ type: ActionType.ChangePage });
+  }, []);
 
   // Load the initial set of items from the HN api. Returns _all_ items (500).
   useEffect(() => {
-    fetch("https://hacker-news.firebaseio.com/v0/topstories.json")
-      .then(data => data.json())
-      .then(data => {
-        dispatch({ type: ActionType.ItemListLoaded, payload: data });
-      })
-      .catch(err => {
-        dispatch({ type: ActionType.ItemListError, payload: err.message });
-      });
+    fetchItemIds(dispatch);
   }, []);
 
-  // itemList has been updated, load new items
+  // itemList or the page has been updated, load new items
   useEffect(() => {
     if (!state.itemList.data || state.itemList.loading) return;
 
-    const itemsToLoad = state.itemList.data.slice(
-      (state.page - 1) * itemsPerPage,
-      state.page * itemsPerPage
-    );
+    fetchNewItems(state, dispatch);
+  }, [state.itemList.data, state.page]);
 
-    itemsToLoad.forEach(async item => {
-      try {
-        const fetchResult = await fetch(`https://hacker-news.firebaseio.com/v0/item/${item}.json`);
-        const itemData = await fetchResult.json();
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
 
-        dispatch({ type: ActionType.ItemsLoaded, payload: itemData });
-      } catch (err) {
-        dispatch({ type: ActionType.ItemsError, payload: err.message });
-      }
-    });
-  }, [state.itemList.data]);
+    const observer = createObserver(updatePage);
+
+    observer.observe(loadMoreRef.current!);
+
+    return () => observer.disconnect();
+  }, [loadMoreRef.current]);
 
   if (state.itemList.loading && !state.itemList.data) {
     return <Text>Loading . . .</Text>;
@@ -119,17 +177,20 @@ export const RawNewsItems = ({ className }: Props) => {
   }
 
   return (
-    <ol className={className}>
-      {state.itemList.data!.slice(0, state.page * itemsPerPage).map(item => {
-        if (!state.items.data || !state.items.data[item]) {
-          return <Text>Placeholder</Text>;
-        }
+    <>
+      <ol className={className}>
+        {state.itemList.data!.slice(0, state.page * itemsPerPage).map((item, idx) => {
+          if (!state.items.data || !state.items.data[item]) {
+            return <Text key={idx}>Placeholder</Text>;
+          }
 
-        const newsItem = state.items.data[item];
+          const newsItem = state.items.data[item];
 
-        return <NewsItem key={newsItem.title} {...newsItem} />;
-      })}
-    </ol>
+          return <NewsItem key={idx} {...newsItem} />;
+        })}
+      </ol>
+      {!!moreToLoad && <Text ref={loadMoreRef}>Loading more stories . . .</Text>}
+    </>
   );
 };
 
