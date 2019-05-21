@@ -89,13 +89,12 @@ Span.defaultProps = {
 
 export const Link = styled("a")<LinkProps>`
   display: inline-block;
-  text-decoration: none;
+  text-decoration: underline;
   color: ${propOr(black, "color")};
   font-size: ${({ level, displayLevel }: LinkProps) =>
     fontSize[`level${displayLevel || level || 3}`]};
   font-weight: ${propOr(FontWeight.Regular, "fontWeight")};
   font-style: ${propOr(FontStyle.Normal, "fontStyle")};
-  border-bottom: 1px solid ${black};
   line-height: 1.2;
   margin: 0;
   transition: color 150ms, border-color 150ms;
@@ -103,7 +102,6 @@ export const Link = styled("a")<LinkProps>`
   @media (hover) {
     &:hover {
       color: ${pSBC(0.5, black)};
-      border-color: ${pSBC(0.5, black)};
     }
   }
 `;

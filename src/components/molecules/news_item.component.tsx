@@ -2,8 +2,10 @@ import React, { memo } from "react";
 import styled from "styled-components";
 import { Stylable } from "../../types/component.types";
 import { ExternalLink, Text, Span } from "../atoms/typography.component";
-import { grey } from "../atoms/color.component";
+import { darkGrey } from "../atoms/color.component";
 import { NewsItem as NewsItemShape } from "../../types/hn.types";
+import { formatDate } from "../../utils/date.utils";
+import { spacing } from "../../utils/spacing.utils";
 
 type Props = Stylable & NewsItemShape;
 
@@ -12,12 +14,19 @@ export const RawNewsItem = memo(({ title, url, by, time, className }: Props) => 
     <Text>
       <ExternalLink href={url}>{title}</ExternalLink>
     </Text>
-    <div>
-      <Span color={grey}>{by}</Span>
-      {" | "}
-      <Span color={grey}>{time}</Span>
-    </div>
+    <Span color={darkGrey} level={4}>
+      {by} :: {formatDate(time)}
+    </Span>
   </li>
 ));
 
-export const NewsItem = styled(RawNewsItem)``;
+export const NewsItem = styled(RawNewsItem)`
+  ${Text} + ${Span} {
+    margin-top: 0 !important;
+  }
+
+  & + &,
+  & + svg {
+    margin-top: ${spacing(2)}px;
+  }
+`;

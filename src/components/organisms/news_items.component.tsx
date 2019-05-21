@@ -1,86 +1,30 @@
-import React, { useReducer, useEffect, useRef, Dispatch, Ref, useCallback } from "react";
+import React, { useReducer, useEffect, useRef, Dispatch, useCallback } from "react";
 import styled from "styled-components";
 import { Stylable, ReducerAction } from "../../types/component.types";
-import { NewsItems as NewsItemsShape, NewsItem as NewsItemShape } from "../../types/hn.types";
-import { NetworkState } from "../../types/network.types";
 import { NewsItem } from "../molecules/news_item.component";
-import { Text } from "../atoms/typography.component";
+import { Text, fontSize } from "../atoms/typography.component";
+import {
+  NewsItemsActionType,
+  NewsItemsState,
+  newsItemsReducer,
+  newsItemsInitialState
+} from "../../reducers/news_items.reducer";
+import { StoryPlaceholder } from "../atoms/story_placeholder.component";
+import { spacing } from "../../utils/spacing.utils";
+import { darkGrey } from "../atoms/color.component";
 
 type Props = Stylable;
 
-enum ActionType {
-  ItemListLoading = "ITEM_LIST_LOADING",
-  ItemListLoaded = "ITEM_LIST_LOADED",
-  ItemListError = "ITEM_LIST_ERROR",
-  ItemsLoading = "ITEMS_LOADING",
-  ItemsLoaded = "ITEMS_LOADED",
-  ItemsError = "ITEMS_ERROR",
-  ItemLoaded = "ITEM_LOADED",
-  ChangePage = "CHANGE_PAGE"
-}
-
-type State = {
-  itemList: NetworkState<NewsItemsShape>;
-  items: NetworkState<Record<string, NewsItemShape>>;
-  page: number;
-};
-
-type Action = ReducerAction<ActionType, string | NewsItemsShape | NewsItemShape>;
-
 const itemsPerPage = 25;
-
-const initialState: State = {
-  itemList: { loading: true, data: null, error: null },
-  items: { loading: true, data: null, error: null },
-  page: 1
-};
-
-const newsItemsReducer = (state: State, action: Action) => {
-  switch (action.type) {
-    case ActionType.ItemListLoading:
-      return { ...state, itemList: { ...state.itemList, loading: true } };
-    case ActionType.ItemListLoaded:
-      return {
-        ...state,
-        itemList: { ...state.itemList, loading: false, data: action.payload as NewsItemsShape }
-      };
-    case ActionType.ItemListError:
-      return {
-        ...state,
-        itemList: { ...state.itemList, loading: false, error: action.payload as string }
-      };
-    case ActionType.ItemsLoading:
-      return { ...state, items: { ...state.items, loading: true } };
-    case ActionType.ItemsLoaded:
-      return { ...state, items: { ...state.items, loading: false } };
-    case ActionType.ItemLoaded:
-      return {
-        ...state,
-        items: {
-          ...state.items,
-          data: {
-            ...state.items.data,
-            [(action.payload as NewsItemShape).id]: action.payload as NewsItemShape
-          }
-        }
-      };
-    case ActionType.ItemsError:
-      return { ...state, items: { ...state.items, error: action.payload as string } };
-    case ActionType.ChangePage:
-      return { ...state, page: state.page + 1 };
-    default:
-      return state;
-  }
-};
 
 export const fetchItemIds = async (dispatch: Dispatch<ReducerAction>) => {
   try {
     const result = await fetch("https://hacker-news.firebaseio.com/v0/topstories.json");
     const json = await result.json();
 
-    dispatch({ type: ActionType.ItemListLoaded, payload: json });
+    dispatch({ type: NewsItemsActionType.ItemListLoaded, payload: json });
   } catch (err) {
-    dispatch({ type: ActionType.ItemListError, payload: err.message });
+    dispatch({ type: NewsItemsActionType.ItemListError, payload: err.message });
   }
 };
 
@@ -91,13 +35,13 @@ export const fetchItem = async (id: number, dispatch: Dispatch<ReducerAction>) =
 
     // React doesn't seem good at batching dispatch calls, so queue this update for the next available tick
     // This is a hack for `requestIdleCallback`, which isn't supported very well
-    setTimeout(() => dispatch({ type: ActionType.ItemLoaded, payload: itemData }), 0);
+    setTimeout(() => dispatch({ type: NewsItemsActionType.ItemLoaded, payload: itemData }), 0);
   } catch (err) {
-    dispatch({ type: ActionType.ItemsError, payload: err.message });
+    dispatch({ type: NewsItemsActionType.ItemsError, payload: err.message });
   }
 };
 
-export const fetchNewItems = async (state: State, dispatch: Dispatch<ReducerAction>) => {
+export const fetchNewItems = async (state: NewsItemsState, dispatch: Dispatch<ReducerAction>) => {
   const itemsToLoad = state.itemList.data!.slice(
     (state.page - 1) * itemsPerPage,
     state.page * itemsPerPage
@@ -133,7 +77,7 @@ export const createObserver = (cb: () => void) => {
 export const RawNewsItems = ({ className }: Props) => {
   // Use a reducer here to guaruntee safe writes to state. `useState` overwrites the entire state,
   // and if network calls finish before the state has been updated, some items may get overwritten.
-  const [state, dispatch] = useReducer(newsItemsReducer, initialState);
+  const [state, dispatch] = useReducer(newsItemsReducer, newsItemsInitialState);
   const loadMoreRef = useRef(null);
   const moreToLoad =
     !!state.itemList.data &&
@@ -141,15 +85,13 @@ export const RawNewsItems = ({ className }: Props) => {
     Object.keys(state.items.data || {}).length > 0;
 
   const updatePage = useCallback(() => {
-    dispatch({ type: ActionType.ChangePage });
+    dispatch({ type: NewsItemsActionType.ChangePage });
   }, []);
 
-  // Load the initial set of items from the HN api. Returns _all_ items (500).
   useEffect(() => {
     fetchItemIds(dispatch);
   }, []);
 
-  // itemList or the page has been updated, load new items
   useEffect(() => {
     if (!state.itemList.data || state.itemList.loading) return;
 
@@ -166,32 +108,55 @@ export const RawNewsItems = ({ className }: Props) => {
     return () => observer.disconnect();
   }, [loadMoreRef.current]);
 
-  if (state.itemList.loading && !state.itemList.data) {
-    return <Text>Loading . . .</Text>;
-  }
-
-  if (!state.itemList.loading && (!!state.itemList.error || !state.itemList.data)) {
-    return (
-      <Text>{state.itemList.error || "There was a problem fetching the latest stories."}</Text>
-    );
-  }
-
   return (
-    <>
-      <ol className={className}>
-        {state.itemList.data!.slice(0, state.page * itemsPerPage).map((item, idx) => {
-          if (!state.items.data || !state.items.data[item]) {
-            return <Text key={idx}>Placeholder</Text>;
-          }
+    <section className={className}>
+      <Choose>
+        <When condition={state.itemList.loading && !state.itemList.data}>
+          <Text>Loading . . .</Text>
+        </When>
+        <When
+          condition={!state.itemList.loading && (!!state.itemList.error || !state.itemList.data)}
+        >
+          <Text>{state.itemList.error || "There was a problem fetching the latest stories."}</Text>
+        </When>
+        <Otherwise>
+          <ol aria-live="polite">
+            {state.itemList.data!.slice(0, state.page * itemsPerPage).map((item, idx) => {
+              if (!state.items.data || !state.items.data[item]) {
+                return <StoryPlaceholder key={idx} />;
+              }
 
-          const newsItem = state.items.data[item];
+              const newsItem = state.items.data[item];
 
-          return <NewsItem key={idx} {...newsItem} />;
-        })}
-      </ol>
-      {!!moreToLoad && <Text ref={loadMoreRef}>Loading more stories . . .</Text>}
-    </>
+              return <NewsItem key={idx} {...newsItem} />;
+            })}
+          </ol>
+          {!!moreToLoad && <Text ref={loadMoreRef}>Loading more stories . . .</Text>}
+        </Otherwise>
+      </Choose>
+    </section>
   );
 };
 
-export const NewsItems = styled(RawNewsItems)``;
+export const NewsItems = styled(RawNewsItems)`
+  ol {
+    margin: 0 0 0 ${spacing(3)}px;
+    padding: 0;
+    list-style: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E");
+    counter-reset: li;
+  }
+
+  li {
+    position: relative;
+  }
+
+  li:before {
+    content: counter(li);
+    counter-increment: li;
+    position: absolute;
+    top: ${spacing(0.25)}px;
+    left: -${spacing(3)}px;
+    color: ${darkGrey};
+    font-size: ${fontSize.level4};
+  }
+`;

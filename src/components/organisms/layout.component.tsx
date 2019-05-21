@@ -1,10 +1,11 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, memo } from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import { Header } from "../molecules/header.component";
 import { Footer } from "../molecules/footer.component";
 import { fontFamily } from "../atoms/typography.component";
 import { maxWidth, spacing } from "../../utils/spacing.utils";
 import { Stylable } from "../../types/component.types";
+import Helmet from "react-helmet";
 
 type Props = Stylable & {
   children: ReactNode;
@@ -44,18 +45,19 @@ const GlobalStyles = createGlobalStyle`
   }
 `;
 
-export const RawLayout = ({ children, className }: Props) => (
+export const RawLayout = memo(({ children, className }: Props) => (
   <div className={className}>
+    <Helmet link={[{ rel: "manifest", href: "/manifest.json" }]} />
     <GlobalStyles />
     <Header />
     <main>{children}</main>
     <Footer />
   </div>
-);
+));
 
 export const Layout = styled(RawLayout)`
   main {
-    width: 100%;
+    width: 90vw;
     max-width: ${maxWidth}px;
     margin: ${spacing(4)}px auto;
   }

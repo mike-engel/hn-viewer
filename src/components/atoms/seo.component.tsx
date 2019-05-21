@@ -1,11 +1,4 @@
-/**
- * SEO component that queries for data with
- *  Gatsby's useStaticQuery React hook
- *
- * See: https://www.gatsbyjs.org/docs/use-static-query/
- */
-
-import React from "react";
+import React, { memo } from "react";
 import Helmet, { HelmetProps } from "react-helmet";
 
 type Props = {
@@ -15,7 +8,7 @@ type Props = {
   title: string;
 };
 
-export const SEO = ({ description = "", lang = "en", meta = [], title }: Props) => {
+export const SEO = memo(({ description = "", lang = "en", meta = [], title }: Props) => {
   return (
     <Helmet
       htmlAttributes={{
@@ -58,4 +51,4 @@ export const SEO = ({ description = "", lang = "en", meta = [], title }: Props) 
       ].concat(meta as any)}
     />
   );
-};
+});

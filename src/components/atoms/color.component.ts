@@ -7,7 +7,8 @@ export const hexToRgba = (hex: string, alpha: number) => {
 };
 
 export const white = "#FFFFFF";
-export const grey = "#A1A3A6";
+export const lightGrey = "#A1A3A6";
+export const darkGrey = "#717477";
 export const black = "#18191A";
 
 // generic function to transform a color hex string to rgb

@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, memo } from "react";
 import styled from "styled-components";
 import { Heading } from "../atoms/typography.component";
 import { Stylable } from "../../types/component.types";
@@ -9,13 +9,13 @@ type Props = Stylable & {
   children?: ReactNode;
 };
 
-export const RawHeader = ({ children = "HN Viewer", className }: Props) => (
+export const RawHeader = memo(({ children = "HN Viewer", className }: Props) => (
   <header className={className}>
     <Heading displayLevel={2} color={white}>
       {children}
     </Heading>
   </header>
-);
+));
 
 export const Header = styled(RawHeader)`
   display: flex;
@@ -25,7 +25,7 @@ export const Header = styled(RawHeader)`
   background: ${black};
 
   ${Heading} {
-    width: 100%;
+    width: 90vw;
     max-width: ${maxWidth}px;
   }
 `;
