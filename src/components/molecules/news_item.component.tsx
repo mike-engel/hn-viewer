@@ -24,9 +24,4 @@ export const NewsItem = styled(RawNewsItem)`
   ${Text} + ${Span} {
     margin-top: 0 !important;
   }
-
-  & + &,
-  & + svg {
-    margin-top: ${spacing(2)}px;
-  }
 `;

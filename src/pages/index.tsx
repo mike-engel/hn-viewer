@@ -6,7 +6,7 @@ import { NewsItems } from "../components/organisms/news_items.component";
 
 const Index = () => (
   <Layout>
-    <SEO title="Home" />
+    <SEO title="HN Viewer" />
     <Heading>Top stories</Heading>
     <NewsItems />
   </Layout>

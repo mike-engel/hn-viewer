@@ -21,10 +21,18 @@ export type NewsItemsState = {
 
 export type NewsItemsAction = ReducerAction<NewsItemsActionType, string | NewsItems | NewsItem>;
 
+export const itemsPerPage = 25;
+
 export const newsItemsInitialState: NewsItemsState = {
-  itemList: { loading: true, data: null, error: null },
+  itemList: { loading: true, data: new Array(itemsPerPage), error: null },
   items: { loading: true, data: null, error: null },
   page: 1
+};
+
+export const allItemsLoaded = (state: NewsItemsState) => {
+  if (!state.items.data || !Object.keys(state.items.data).length) return false;
+
+  return (Object.keys(state.items.data).length + 1) % itemsPerPage !== 0;
 };
 
 export const newsItemsReducer = (state: NewsItemsState, action: NewsItemsAction) => {
@@ -50,6 +58,7 @@ export const newsItemsReducer = (state: NewsItemsState, action: NewsItemsAction)
         ...state,
         items: {
           ...state.items,
+          loading: allItemsLoaded(state),
           data: {
             ...state.items.data,
             [(action.payload as NewsItem).id]: action.payload as NewsItem

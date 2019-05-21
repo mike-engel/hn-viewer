@@ -1,4 +1,11 @@
-import React, { useReducer, useEffect, useRef, Dispatch, useCallback } from "react";
+import React, {
+  useReducer,
+  useEffect,
+  useRef,
+  Dispatch,
+  useCallback,
+  MutableRefObject
+} from "react";
 import styled from "styled-components";
 import { Stylable, ReducerAction } from "../../types/component.types";
 import { NewsItem } from "../molecules/news_item.component";
@@ -7,15 +14,14 @@ import {
   NewsItemsActionType,
   NewsItemsState,
   newsItemsReducer,
-  newsItemsInitialState
+  newsItemsInitialState,
+  itemsPerPage
 } from "../../reducers/news_items.reducer";
 import { StoryPlaceholder } from "../atoms/story_placeholder.component";
 import { spacing } from "../../utils/spacing.utils";
-import { darkGrey } from "../atoms/color.component";
+import { darkGrey, lightGrey } from "../atoms/color.component";
 
 type Props = Stylable;
-
-const itemsPerPage = 25;
 
 export const fetchItemIds = async (dispatch: Dispatch<ReducerAction>) => {
   try {
@@ -47,14 +53,7 @@ export const fetchNewItems = async (state: NewsItemsState, dispatch: Dispatch<Re
     state.page * itemsPerPage
   );
 
-  itemsToLoad.forEach(async item => {
-    // if (!!state.items.data && Object.keys(state.items.data).length % itemsPerPage === 0) {
-    //   console.log("all items loaded");
-
-    //   dispatch({ type: ActionType.ItemsLoaded });
-    // }
-    fetchItem(item, dispatch);
-  });
+  itemsToLoad.forEach(async item => fetchItem(item, dispatch));
 };
 
 export const createObserver = (cb: () => void) => {
@@ -74,46 +73,53 @@ export const createObserver = (cb: () => void) => {
   );
 };
 
+export const moreItemsAvailable = (state: NewsItemsState) => {
+  if (!state.items.data || !state.itemList.data) return true;
+
+  return Object.keys(state.items.data).length < state.itemList.data.length;
+};
+
 export const RawNewsItems = ({ className }: Props) => {
   // Use a reducer here to guaruntee safe writes to state. `useState` overwrites the entire state,
   // and if network calls finish before the state has been updated, some items may get overwritten.
   const [state, dispatch] = useReducer(newsItemsReducer, newsItemsInitialState);
   const loadMoreRef = useRef(null);
-  const moreToLoad =
-    !!state.itemList.data &&
-    Object.keys(state.items.data || {}).length !== state.itemList.data.length &&
-    Object.keys(state.items.data || {}).length > 0;
+  const canLoadMore = moreItemsAvailable(state) && !state.items.loading;
+  const observer: MutableRefObject<IntersectionObserver | null> = useRef(null);
 
+  // performance enhancement. It may not make a big difference, but it doesn't hurt to include.
   const updatePage = useCallback(() => {
     dispatch({ type: NewsItemsActionType.ChangePage });
   }, []);
 
   useEffect(() => {
+    observer.current = createObserver(updatePage);
     fetchItemIds(dispatch);
   }, []);
 
   useEffect(() => {
     if (!state.itemList.data || state.itemList.loading) return;
 
+    dispatch({ type: NewsItemsActionType.ItemsLoading });
+
     fetchNewItems(state, dispatch);
   }, [state.itemList.data, state.page]);
 
   useEffect(() => {
-    if (!loadMoreRef.current) return;
+    if (!loadMoreRef.current || !canLoadMore || !observer.current) return;
 
-    const observer = createObserver(updatePage);
+    observer.current.observe(loadMoreRef.current!);
 
-    observer.observe(loadMoreRef.current!);
+    return () => {
+      if (!observer.current) return;
 
-    return () => observer.disconnect();
-  }, [loadMoreRef.current]);
+      observer.current.disconnect();
+    };
+  }, [loadMoreRef.current, canLoadMore]);
 
   return (
     <section className={className}>
       <Choose>
-        <When condition={state.itemList.loading && !state.itemList.data}>
-          <Text>Loading . . .</Text>
-        </When>
         <When
           condition={!state.itemList.loading && (!!state.itemList.error || !state.itemList.data)}
         >
@@ -131,7 +137,9 @@ export const RawNewsItems = ({ className }: Props) => {
               return <NewsItem key={idx} {...newsItem} />;
             })}
           </ol>
-          {!!moreToLoad && <Text ref={loadMoreRef}>Loading more stories . . .</Text>}
+          <Text ref={loadMoreRef}>
+            <If condition={canLoadMore}>Loading more stories . . .</If>
+          </Text>
         </Otherwise>
       </Choose>
     </section>
@@ -150,6 +158,10 @@ export const NewsItems = styled(RawNewsItems)`
     position: relative;
   }
 
+  li + li {
+    margin-top: ${spacing(2)}px;
+  }
+
   li:before {
     content: counter(li);
     counter-increment: li;
@@ -158,5 +170,12 @@ export const NewsItems = styled(RawNewsItems)`
     left: -${spacing(3)}px;
     color: ${darkGrey};
     font-size: ${fontSize.level4};
+  }
+
+  ol + ${Text} {
+    padding: ${spacing(2)}px 0;
+    margin-top: ${spacing(4)}px;
+    border-top: 1px solid ${lightGrey};
+    text-align: center;
   }
 `;
