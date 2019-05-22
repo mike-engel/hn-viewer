@@ -9,24 +9,23 @@ export const RawStoryPlaceholder = memo(({ className }: Props) => (
   <li className={className}>
     <svg width={269} height={37} fill="none">
       <g clipPath="url(#a)">
-        <rect y={25} width={130} height={12} rx={2} fill="url(#b)" />
-        <rect width={269} height={16} rx={2} fill="url(#c)" />
+        <rect y={25} width={135} height={12} rx={2} fill="url(#c)" />
+        <rect width={270} height={16} rx={2} fill="url(#b)" />
       </g>
       <defs>
-        <linearGradient
-          id="b"
-          x1="18.8476"
-          y1="20.5"
-          x2="22.8379"
-          y2="41.4369"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop stopColor="#DAE0E6" />
-          <stop offset={1} stopColor="#C2C7CC" />
+        <linearGradient id="b" x1="0%" y1="0%" x2="200%" y2="0%">
+          <stop offset="0%" stopColor="#C2C7CC" />
+          <stop offset="0%" stopColor="#DAE0E6">
+            <animate attributeName="offset" from="0%" to="200%" dur="2s" repeatCount="indefinite" />
+          </stop>
+          <stop offset="200%" stopColor="#C2C7CC" />
         </linearGradient>
-        <linearGradient id="c" x1={39} y1={-6} x2="42.5" y2="22.5" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#DAE0E6" />
-          <stop offset={1} stopColor="#C2C7CC" />
+        <linearGradient id="c" x1="0%" y1="0%" x2="200%" y2="0%">
+          <stop offset="0%" stopColor="#C2C7CC" />
+          <stop offset="0%" stopColor="#DAE0E6">
+            <animate attributeName="offset" from="0%" to="400%" dur="2s" repeatCount="indefinite" />
+          </stop>
+          <stop offset="200%" stopColor="#C2C7CC" />
         </linearGradient>
         <clipPath id="a">
           <rect width={269} height={37} fill="#fff" />
