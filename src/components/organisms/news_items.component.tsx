@@ -43,7 +43,6 @@ export const fetchItem = async (id: number, dispatch: Dispatch<ReducerAction>) =
     // This is a hack for `requestIdleCallback`, which isn't supported very well
     setTimeout(() => dispatch({ type: NewsItemsActionType.ItemLoaded, payload: itemData }), 0);
   } catch (err) {
-    // console.log("error fetching item", err);
     if (/failed to fetch/i.test(err.message)) {
       dispatch({ type: NewsItemsActionType.ProbablyOffline });
 

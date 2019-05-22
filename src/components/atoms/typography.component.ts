@@ -112,4 +112,7 @@ Link.defaultProps = {
   level: "inherit"
 };
 
-export const ExternalLink = styled(Link).attrs(() => ({ target: "_blank" }))``;
+export const ExternalLink = styled(Link).attrs(() => ({
+  target: "_blank",
+  rel: "noopener noreferrer"
+}))``;

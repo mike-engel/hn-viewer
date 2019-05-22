@@ -33,12 +33,13 @@
   ],
   "license": "MIT",
   "scripts": {
-    "build": "gatsby build",
+    "build": "NODE_ENV=production gatsby build",
     "dev": "gatsby develop",
     "start": "npm run develop",
     "serve": "gatsby serve",
     "test": "echo \"Tests may come later\"",
-    "types:check": "tsc -p . --noEmit"
+    "types:check": "tsc -p . --noEmit",
+    "now-build": "npm run build"
   },
   "repository": {
     "type": "git",

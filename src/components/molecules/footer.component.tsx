@@ -23,7 +23,7 @@ export const Footer = styled(RawFooter)`
   padding: ${spacing(2)}px 0;
 
   ${Text} {
-    width: 100%;
+    width: 90vw;
     max-width: ${maxWidth}px;
   }
 `;
