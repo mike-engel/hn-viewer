@@ -3,7 +3,6 @@ import styled from "styled-components";
 import { Stylable } from "../../types/component.types";
 import { ExternalLink, Text } from "../atoms/typography.component";
 import { maxWidth, spacing } from "../../utils/spacing.utils";
-import { lightGrey } from "../atoms/color.component";
 
 type Props = Stylable;
 
@@ -22,7 +21,6 @@ export const Footer = styled(RawFooter)`
   align-items: center;
   justify-content: center;
   padding: ${spacing(2)}px 0;
-  border-top: 1px solid ${lightGrey};
 
   ${Text} {
     width: 100%;

@@ -10,13 +10,15 @@ export enum NewsItemsActionType {
   ItemsLoaded = "ITEMS_LOADED",
   ItemsError = "ITEMS_ERROR",
   ItemLoaded = "ITEM_LOADED",
-  ChangePage = "CHANGE_PAGE"
+  ChangePage = "CHANGE_PAGE",
+  ProbablyOffline = "PROBABLY_OFFLINE"
 }
 
 export type NewsItemsState = {
   itemList: NetworkState<NewsItems>;
   items: NetworkState<Record<string, NewsItem>>;
   page: number;
+  offline: boolean;
 };
 
 export type NewsItemsAction = ReducerAction<NewsItemsActionType, string | NewsItems | NewsItem>;
@@ -26,7 +28,8 @@ export const itemsPerPage = 25;
 export const newsItemsInitialState: NewsItemsState = {
   itemList: { loading: true, data: new Array(itemsPerPage), error: null },
   items: { loading: true, data: null, error: null },
-  page: 1
+  page: 1,
+  offline: false
 };
 
 export const allItemsLoaded = (state: NewsItemsState) => {
@@ -69,6 +72,8 @@ export const newsItemsReducer = (state: NewsItemsState, action: NewsItemsAction)
       return { ...state, items: { ...state.items, error: action.payload as string } };
     case NewsItemsActionType.ChangePage:
       return { ...state, page: state.page + 1 };
+    case NewsItemsActionType.ProbablyOffline:
+      return { ...state, offline: true };
     default:
       return state;
   }

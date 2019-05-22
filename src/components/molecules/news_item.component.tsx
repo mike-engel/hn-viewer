@@ -5,7 +5,6 @@ import { ExternalLink, Text, Span } from "../atoms/typography.component";
 import { darkGrey } from "../atoms/color.component";
 import { NewsItem as NewsItemShape } from "../../types/hn.types";
 import { formatDate } from "../../utils/date.utils";
-import { spacing } from "../../utils/spacing.utils";
 
 type Props = Stylable & NewsItemShape;
 

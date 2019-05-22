@@ -43,6 +43,13 @@ export const fetchItem = async (id: number, dispatch: Dispatch<ReducerAction>) =
     // This is a hack for `requestIdleCallback`, which isn't supported very well
     setTimeout(() => dispatch({ type: NewsItemsActionType.ItemLoaded, payload: itemData }), 0);
   } catch (err) {
+    // console.log("error fetching item", err);
+    if (/failed to fetch/i.test(err.message)) {
+      dispatch({ type: NewsItemsActionType.ProbablyOffline });
+
+      return;
+    }
+
     dispatch({ type: NewsItemsActionType.ItemsError, payload: err.message });
   }
 };
@@ -86,6 +93,8 @@ export const RawNewsItems = ({ className }: Props) => {
   const loadMoreRef = useRef(null);
   const canLoadMore = moreItemsAvailable(state) && !state.items.loading;
   const observer: MutableRefObject<IntersectionObserver | null> = useRef(null);
+  // If the use is probably offline, don't show the previews
+  const storyCount = (state.offline ? state.page - 1 : state.page) * itemsPerPage;
 
   // performance enhancement. It may not make a big difference, but it doesn't hurt to include.
   const updatePage = useCallback(() => {
@@ -127,7 +136,7 @@ export const RawNewsItems = ({ className }: Props) => {
         </When>
         <Otherwise>
           <ol aria-live="polite">
-            {state.itemList.data!.slice(0, state.page * itemsPerPage).map((item, idx) => {
+            {state.itemList.data!.slice(0, storyCount).map((item, idx) => {
               if (!state.items.data || !state.items.data[item]) {
                 return <StoryPlaceholder key={idx} />;
               }
@@ -137,6 +146,12 @@ export const RawNewsItems = ({ className }: Props) => {
               return <NewsItem key={idx} {...newsItem} />;
             })}
           </ol>
+          <If condition={state.offline}>
+            <Text>
+              Looks like you're offline. You'll be able to load more stories once you're back
+              online.
+            </Text>
+          </If>
           <Text ref={loadMoreRef}>
             <If condition={canLoadMore}>Loading more stories . . .</If>
           </Text>
